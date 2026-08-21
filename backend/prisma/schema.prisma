@@ -11,3 +11,9 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+model Deployment {
+  id      String    @id   @default(uuid())
+  status  String 
+  link    String
+}
