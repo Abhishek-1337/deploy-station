@@ -1,6 +1,8 @@
 # dependencies (bun install)
 node_modules
-
+.agents
+.windsurf
+.claude
 # output
 out
 dist
@@ -32,3 +34,5 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 
 # Finder (MacOS) folder config
 .DS_Store
+
+/generated/client
