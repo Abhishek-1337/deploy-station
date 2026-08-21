@@ -13,9 +13,17 @@ datasource db {
 }
 
 model Deployment {
-  id      String @id @default(uuid())
-  status  String
-  link    String
+  id          String @id @default(uuid())
+  status      String
+  repo        String
+  projectId   String
+  project     Project   @relation(fields:[projectId], references: [id])
+}
+
+model Project {
+  id              String @id  @default(uuid())
+  deployments     Deployment[]
+  domain          String? 
 }
 
 model User {
