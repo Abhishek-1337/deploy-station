@@ -1,3 +1,4 @@
+import { Elysia } from "elysia";
 import { verifyToken } from "../utils/auth.ts";
 import { prisma } from "../lib/prisma.ts";
 
@@ -35,3 +36,17 @@ export async function requireAuth(headers: any, request?: Request) {
   }
   return user;
 }
+
+/** Reusable Elysia plugin that protects all routes it is applied to.
+ *  Derives `user` into context and rejects with 401 if not authenticated. */
+export const authPlugin = new Elysia({ name: "auth" })
+  .derive(async ({ headers, request }: any) => {
+    const user = await getUserFromRequest(headers, request);
+    return { user };
+  })
+  .onBeforeHandle(({ user, set }: any) => {
+    if (!user) {
+      set.status = 401 as any;
+      return { error: "Unauthorized" };
+    }
+  });
