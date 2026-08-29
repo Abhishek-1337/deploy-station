@@ -25,6 +25,7 @@ model Deployment {
 
 model Project {
   id              String @id  @default(uuid())
+  name            String
   deployments     Deployment[]
   domain          String? 
 }
