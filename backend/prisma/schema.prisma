@@ -26,6 +26,8 @@ model Deployment {
 model Project {
   id              String @id  @default(uuid())
   name            String
+  userId          String
+  user            User  @relation(fields: [userId], references: [id])
   deployments     Deployment[]
   domain          String? 
 }
@@ -37,4 +39,5 @@ model User {
   name      String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  projects  Project[] 
 }
