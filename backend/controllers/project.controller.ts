@@ -1,5 +1,5 @@
-import { prisma } from "../lib/prisma";
-import { deployQueue } from "../utils/queue";
+import { prisma } from "../lib/prisma.ts";
+import { deployQueue } from "../utils/queue.ts";
 
 
 async function validateGithubUrl(repoUrl: string) {
@@ -40,49 +40,64 @@ async function validateGithubUrl(repoUrl: string) {
   }
 }
 
-export const deployProject = async ({body, set}: any) => {
-  const { github_url } = body;
+export const deployProject = async ({ body, set, user }: any) => {
+  // auth guard ensures user exists, but double-check for direct calls
+  if (!user) {
+    set.status = 401;
+    return { error: "Unauthorized" };
+  }
 
-  if(github_url.strip() === "") {
+  const { github_url } = body as { github_url: string };
+
+  if (!github_url || typeof github_url !== "string" || github_url.trim() === "") {
     set.status = 400;
     return {
-      message: "You need to input github url to deploy the project."
-    }
+      message: "You need to input github url to deploy the project.",
+    };
   }
 
   const validityRes = await validateGithubUrl(github_url);
 
-  if(!validityRes.isValid) {
+  if (!validityRes.isValid) {
     set.status = 400;
     return {
-      message: "Invalid url."
-    }
+      message: validityRes.error ?? "Invalid url.",
+    };
   }
 
   const project = await prisma.project.create({
     data: {
-      name: validityRes.projectName as string
-    }
+      name: validityRes.projectName as string,
+      userId: user.id,
+    },
   });
 
   const deployment = await prisma.deployment.create({
     data: {
       repo: github_url,
       projectId: project.id,
-      status: "QUEUED"
-    }
+      status: "QUEUED",
+    },
   });
 
-  deployQueue.add("deploy-job", {
-    github_url
-  },
-  {
-    jobId: deployment.id
-  });
+  await deployQueue.add(
+    "deploy-job",
+    {
+      github_url,
+      deploymentId: deployment.id,
+      projectId: project.id,
+      userId: user.id,
+    },
+    {
+      jobId: deployment.id,
+    }
+  );
 
   set.status = 200;
   return {
     status: "QUEUED",
-    message: "Project is being deployed wait."
-   };
+    message: "Project is being deployed wait.",
+    projectId: project.id,
+    deploymentId: deployment.id,
+  };
 };
