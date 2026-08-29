@@ -1,14 +1,14 @@
 import { Elysia } from "elysia"
 import { authRoutes } from "./routes/auth.ts"
+import { deployRoutes } from "./routes/project.route.ts"
 import { getUserFromRequest } from "./middleware/auth.ts"
 
 new Elysia()
   .get("/health", () => ({
     status: "healthy",
   }))
-  // public auth routes
   .use(authRoutes)
-  // example protected route
+  .use(deployRoutes)
   .get("/api/protected", async ({ headers, request, set }: any) => {
     const user = await getUserFromRequest(headers, request)
     if (!user) {
