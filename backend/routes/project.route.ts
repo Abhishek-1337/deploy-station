@@ -1,9 +1,11 @@
 import { Elysia, t } from "elysia";
-import * as projectControllers from "../controllers/project.controller";
+import * as projectControllers from "../controllers/project.controller.ts";
+import { authPlugin } from "../middleware/auth.ts";
 
 export const deployRoutes = new Elysia({ prefix: "/api/project" })
-.post("/deploy", projectControllers.deployProject, {
+  .use(authPlugin)
+  .post("/deploy", projectControllers.deployProject, {
     body: t.Object({
-        github_url: t.String()
-    })
-})
+      github_url: t.String(),
+    }),
+  });
