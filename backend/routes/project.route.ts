@@ -1,9 +1,18 @@
 import { Elysia, t } from "elysia";
 import * as projectControllers from "../controllers/project.controller.ts";
-import { authPlugin } from "../middleware/auth.ts";
+import { getUserFromRequest } from "../middleware/auth.ts";
 
 export const deployRoutes = new Elysia({ prefix: "/api/project" })
-  .use(authPlugin)
+  .derive(async ({ headers, request }: any) => {
+    const user = await getUserFromRequest(headers, request);
+    return { user };
+  })
+  .onBeforeHandle(({ user, set }: any) => {
+    if (!user) {
+      set.status = 401 as any;
+      return { error: "Unauthorized" };
+    }
+  })
   .post("/deploy", projectControllers.deployProject, {
     body: t.Object({
       github_url: t.String(),

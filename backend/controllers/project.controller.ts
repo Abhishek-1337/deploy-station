@@ -40,8 +40,11 @@ async function validateGithubUrl(repoUrl: string) {
   }
 }
 
-export const deployProject = async ({ body, set, user }: any) => {
-  // auth guard ensures user exists, but double-check for direct calls
+export const deployProject = async ({ body, set, user, headers, request }: any) => {
+  if (!user && headers) {
+    const { getUserFromRequest } = await import("../middleware/auth.ts");
+    user = await getUserFromRequest(headers, request);
+  }
   if (!user) {
     set.status = 401;
     return { error: "Unauthorized" };

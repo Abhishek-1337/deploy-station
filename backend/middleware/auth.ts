@@ -2,7 +2,6 @@ import { Elysia } from "elysia";
 import { verifyToken } from "../utils/auth.ts";
 import { prisma } from "../lib/prisma.ts";
 
-/** Extract and verify Bearer token from headers/request */
 export async function getUserFromRequest(headers: any, request?: Request) {
   const raw =
     headers?.authorization ??
@@ -26,7 +25,6 @@ export async function getUserFromRequest(headers: any, request?: Request) {
   }
 }
 
-/** Elysia-compatible helper – call inside route handler */
 export async function requireAuth(headers: any, request?: Request) {
   const user = await getUserFromRequest(headers, request);
   if (!user) {
@@ -37,8 +35,10 @@ export async function requireAuth(headers: any, request?: Request) {
   return user;
 }
 
-/** Reusable Elysia plugin that protects all routes it is applied to.
- *  Derives `user` into context and rejects with 401 if not authenticated. */
+// NOTE: Elysia plugin via `use()` does not propagate derive/onBeforeHandle correctly
+// when the plugin is mounted onto a prefixed group and then mounted onto the main app
+// (see reproduction with Elysia 1.4.29). Use inline derive guard instead.
+// Kept for backwards-compat on simple routes, but deploy routes use inline guard.
 export const authPlugin = new Elysia({ name: "auth" })
   .derive(async ({ headers, request }: any) => {
     const user = await getUserFromRequest(headers, request);
