@@ -38,9 +38,15 @@ export const api = {
       body: JSON.stringify(body),
     }),
   me: () => request<{ user: any }>("/api/auth/me"),
-  deploy: (body: { repoUrl: string }) =>
-    request<{ deploymentId: string; status: string }>("/api/deploy", {
-      method: "POST",
-      body: JSON.stringify(body),
-    }),
+  deploy: (body: { github_url: string } | { repoUrl: string }) => {
+    const payload =
+      "github_url" in body ? body : { github_url: (body as any).repoUrl };
+    return request<{ deploymentId: string; status: string; projectId: string }>(
+      "/api/project/deploy",
+      {
+        method: "POST",
+        body: JSON.stringify(payload),
+      }
+    );
+  },
 };
