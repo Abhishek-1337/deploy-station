@@ -59,11 +59,40 @@ export const deployProject = async ({ body, set, user, headers, request }: any) 
     };
   }
 
-  // await prisma.project.findFirst({
-  //   where: {
-      
-  //   }
-  // })
+  const checkRepo = await prisma.project.findFirst({
+    where: {
+      repo: github_url  
+    }
+  });
+
+  if(checkRepo) {
+    const deployment = await prisma.deployment.create({
+      data: {
+        projectId: checkRepo.id,
+        status: "QUEUED",
+      },
+    });
+
+    await deployQueue.add(
+      "deploy-job",
+      {
+        github_url,
+        deploymentId: deployment.id,
+        projectId: checkRepo.id,
+        userId: user.id,
+      },
+      {
+        jobId: deployment.id,
+      }
+    );
+
+    return {
+      status: "QUEUED",
+      message: "Project is already in our database, deploying again....",
+      projectId: checkRepo.id,
+      deploymentId: deployment.id,
+    };
+  }
 
   const validityRes = await validateGithubUrl(github_url);
 
