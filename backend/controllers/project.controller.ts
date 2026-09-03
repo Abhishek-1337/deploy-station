@@ -59,6 +59,12 @@ export const deployProject = async ({ body, set, user, headers, request }: any) 
     };
   }
 
+  // await prisma.project.findFirst({
+  //   where: {
+      
+  //   }
+  // })
+
   const validityRes = await validateGithubUrl(github_url);
 
   if (!validityRes.isValid) {
@@ -71,13 +77,13 @@ export const deployProject = async ({ body, set, user, headers, request }: any) 
   const project = await prisma.project.create({
     data: {
       name: validityRes.projectName as string,
+      repo: github_url,
       userId: user.id,
     },
   });
 
   const deployment = await prisma.deployment.create({
     data: {
-      repo: github_url,
       projectId: project.id,
       status: "QUEUED",
     },
