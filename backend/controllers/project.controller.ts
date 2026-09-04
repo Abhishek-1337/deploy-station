@@ -61,37 +61,69 @@ export const deployProject = async ({ body, set, user, headers, request }: any) 
 
   const checkRepo = await prisma.project.findFirst({
     where: {
-      repo: github_url  
+      repo: github_url,
+      userId: user.id,
     }
   });
 
   if(checkRepo) {
-    const deployment = await prisma.deployment.create({
-      data: {
-        projectId: checkRepo.id,
-        status: "QUEUED",
-      },
+    // Senior guard: dedupe if a deployment is already QUEUED/RUNNING for this project
+    const active = await prisma.deployment.findFirst({
+      where: { projectId: checkRepo.id, status: { in: ["QUEUED", "RUNNING"] } },
     });
-
-    await deployQueue.add(
-      "deploy-job",
-      {
-        github_url,
-        deploymentId: deployment.id,
+    if (active) {
+      set.status = 409;
+      return {
+        status: active.status,
+        message: "Deployment already in progress for this project.",
         projectId: checkRepo.id,
-        userId: user.id,
-      },
-      {
-        jobId: deployment.id,
-      }
-    );
+        deploymentId: active.id,
+      };
+    }
 
-    return {
-      status: "QUEUED",
-      message: "Project is already in our database, deploying again....",
-      projectId: checkRepo.id,
-      deploymentId: deployment.id,
-    };
+    try {
+      const deployment = await prisma.deployment.create({
+        data: {
+          projectId: checkRepo.id,
+          status: "QUEUED",
+        },
+      });
+
+      await deployQueue.add(
+        "deploy-job",
+        {
+          github_url,
+          deploymentId: deployment.id,
+          projectId: checkRepo.id,
+          userId: user.id,
+        },
+        {
+          jobId: deployment.id,
+        }
+      );
+
+      return {
+        status: "QUEUED",
+        message: "Project is already in our database, deploying again....",
+        projectId: checkRepo.id,
+        deploymentId: deployment.id,
+      };
+    } catch (e: any) {
+      // Race: partial unique index @@unique([projectId] where status IN QUEUED,RUNNING) -> P2002
+      if (e?.code === "P2002") {
+        const raceActive = await prisma.deployment.findFirst({
+          where: { projectId: checkRepo.id, status: { in: ["QUEUED", "RUNNING"] } },
+        });
+        set.status = 409;
+        return {
+          status: raceActive?.status ?? "QUEUED",
+          message: "Deployment already in progress (race).",
+          projectId: checkRepo.id,
+          deploymentId: raceActive?.id ?? checkRepo.id,
+        };
+      }
+      throw e;
+    }
   }
 
   const validityRes = await validateGithubUrl(github_url);
@@ -111,12 +143,30 @@ export const deployProject = async ({ body, set, user, headers, request }: any) 
     },
   });
 
-  const deployment = await prisma.deployment.create({
-    data: {
-      projectId: project.id,
-      status: "QUEUED",
-    },
-  });
+  let deployment: any;
+  try {
+    deployment = await prisma.deployment.create({
+      data: {
+        projectId: project.id,
+        status: "QUEUED",
+      },
+    });
+  } catch (e: any) {
+    if (e?.code === "P2002") {
+      // Extremely rare: project just created but race still hit
+      const raceActive = await prisma.deployment.findFirst({
+        where: { projectId: project.id, status: { in: ["QUEUED", "RUNNING"] } },
+      });
+      set.status = 409;
+      return {
+        status: raceActive?.status ?? "QUEUED",
+        message: "Deployment already in progress (race).",
+        projectId: project.id,
+        deploymentId: raceActive?.id ?? project.id,
+      };
+    }
+    throw e;
+  }
 
   await deployQueue.add(
     "deploy-job",
@@ -131,7 +181,7 @@ export const deployProject = async ({ body, set, user, headers, request }: any) 
     }
   );
 
-  set.status = 200;
+  set.status = 201;
   return {
     status: "QUEUED",
     message: "Project is being deployed wait.",
