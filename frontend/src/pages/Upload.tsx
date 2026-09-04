@@ -62,7 +62,16 @@ export default function Upload() {
       setResult(res);
       startPolling(res.deploymentId);
     } catch (err: any) {
-      setError(err.message);
+      // Senior UX: 409 means deduped — deployment already QUEUED/RUNNING, poll existing
+      if (err?.status === 409 && err?.data?.deploymentId) {
+        const existing = err.data as { deploymentId: string; status: string; projectId: string; message?: string };
+        setResult({ deploymentId: existing.deploymentId, status: existing.status, projectId: existing.projectId } as any);
+        setLiveStatus(existing.status);
+        startPolling(existing.deploymentId);
+        setError("");
+      } else {
+        setError(err.message);
+      }
     } finally {
       setLoading(false);
     }

@@ -22,7 +22,12 @@ async function request<T>(path: string, opts: RequestInit = {}): Promise<T> {
 
   const res = await fetch(`${API_URL}${path}`, { ...opts, headers });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error((data as any).error || `Request failed: ${res.status}`);
+  if (!res.ok) {
+    const err: any = new Error((data as any).error || (data as any).message || `Request failed: ${res.status}`);
+    err.status = res.status;
+    err.data = data;
+    throw err;
+  }
   return data as T;
 }
 
