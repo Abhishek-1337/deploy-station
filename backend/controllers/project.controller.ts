@@ -139,3 +139,51 @@ export const deployProject = async ({ body, set, user, headers, request }: any) 
     deploymentId: deployment.id,
   };
 };
+
+export const getDeploymentStatus = async ({ params, set, user, headers, request }: any) => {
+  if (!user && headers) {
+    const { getUserFromRequest } = await import("../middleware/auth.ts");
+    user = await getUserFromRequest(headers, request);
+  }
+  if (!user) {
+    set.status = 401;
+    return { error: "Unauthorized" };
+  }
+  const { deploymentId } = params as { deploymentId: string };
+  const deployment = await prisma.deployment.findUnique({
+    where: { id: deploymentId },
+    include: { project: { select: { userId: true, name: true, repo: true } } },
+  });
+  if (!deployment) {
+    set.status = 404;
+    return { error: "Deployment not found" };
+  }
+  if (deployment.project.userId !== user.id) {
+    set.status = 403;
+    return { error: "Forbidden" };
+  }
+  return {
+    deploymentId: deployment.id,
+    projectId: deployment.projectId,
+    status: deployment.status,
+    project: { name: deployment.project.name, repo: deployment.project.repo },
+  };
+};
+
+export const listDeployments = async ({ set, user, headers, request, query }: any) => {
+  if (!user && headers) {
+    const { getUserFromRequest } = await import("../middleware/auth.ts");
+    user = await getUserFromRequest(headers, request);
+  }
+  if (!user) {
+    set.status = 401;
+    return { error: "Unauthorized" };
+  }
+  const deployments = await prisma.deployment.findMany({
+    where: { project: { userId: user.id } },
+    include: { project: { select: { name: true, repo: true } } },
+    orderBy: { id: "desc" },
+    take: 20,
+  });
+  return { deployments };
+};

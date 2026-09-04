@@ -17,4 +17,6 @@ export const deployRoutes = new Elysia({ prefix: "/api/project" })
     body: t.Object({
       github_url: t.String(),
     }),
-  });
+  })
+  .get("/deployment/:deploymentId", projectControllers.getDeploymentStatus)
+  .get("/deployments", projectControllers.listDeployments);
