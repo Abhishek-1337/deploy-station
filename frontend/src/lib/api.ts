@@ -49,4 +49,12 @@ export const api = {
       }
     );
   },
+  getDeploymentStatus: (deploymentId: string) =>
+    request<{ deploymentId: string; projectId: string; status: string; project: { name: string; repo: string } }>(
+      `/api/project/deployment/${deploymentId}`
+    ),
+  listDeployments: () =>
+    request<{ deployments: Array<{ id: string; status: string; projectId: string; project: { name: string; repo: string } }> }>(
+      "/api/project/deployments"
+    ),
 };
