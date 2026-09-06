@@ -67,7 +67,6 @@ export const deployProject = async ({ body, set, user, headers, request }: any) 
   });
 
   if(checkRepo) {
-    // Senior guard: dedupe if a deployment is already QUEUED/RUNNING for this project
     const active = await prisma.deployment.findFirst({
       where: { projectId: checkRepo.id, status: { in: ["QUEUED", "RUNNING"] } },
     });
@@ -109,7 +108,6 @@ export const deployProject = async ({ body, set, user, headers, request }: any) 
         deploymentId: deployment.id,
       };
     } catch (e: any) {
-      // Race: partial unique index @@unique([projectId] where status IN QUEUED,RUNNING) -> P2002
       if (e?.code === "P2002") {
         const raceActive = await prisma.deployment.findFirst({
           where: { projectId: checkRepo.id, status: { in: ["QUEUED", "RUNNING"] } },
@@ -137,7 +135,7 @@ export const deployProject = async ({ body, set, user, headers, request }: any) 
 
   const project = await prisma.project.create({
     data: {
-      name: validityRes.projectName as string,
+      name: validityRes.projectName?.toLowerCase() as string,
       repo: github_url,
       userId: user.id,
     },
@@ -153,7 +151,6 @@ export const deployProject = async ({ body, set, user, headers, request }: any) 
     });
   } catch (e: any) {
     if (e?.code === "P2002") {
-      // Extremely rare: project just created but race still hit
       const raceActive = await prisma.deployment.findFirst({
         where: { projectId: project.id, status: { in: ["QUEUED", "RUNNING"] } },
       });
