@@ -15,4 +15,6 @@ export const authRoutes = new Elysia({ prefix: "/api/auth" })
       password: t.String({ minLength: 1 }),
     }),
   })
-  .get("/me", authController.getMe);
+  .get("/me", authController.getMe)
+  .get("/google", authController.googleAuth)
+  .get("/google/callback", authController.googleCallback);

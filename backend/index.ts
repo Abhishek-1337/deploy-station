@@ -1,4 +1,5 @@
 import { Elysia } from "elysia"
+import cors from "@elysiajs/cors"
 import { authRoutes } from "./routes/auth.ts"
 import { deployRoutes } from "./routes/project.route.ts"
 import { getUserFromRequest } from "./middleware/auth.ts"
@@ -6,6 +7,10 @@ import { prisma } from "./lib/prisma.ts"
 import { getProjectFile } from "./utils/r2.ts"
 
 new Elysia()
+  .use(cors({
+    origin: process.env.FRONTEND_URL || "http://localhost:5173",
+    credentials: true,
+  }))
   .get("/health", () => ({
     status: "healthy",
   }))
@@ -71,17 +76,21 @@ new Elysia()
         where: { name: subdomain },
       });
       if (project) {
+
         const latest = await prisma.deployment.findFirst({
           where: { projectId: project.id, status: "DEPLOYED" },
           orderBy: { id: "desc" },
         });
+
         if (latest) {
           deploymentId = latest.id;
-        } else {
+        } 
+        else {
           const anyDeployment = await prisma.deployment.findFirst({
             where: { projectId: project.id },
             orderBy: { id: "desc" },
           });
+
           if (anyDeployment) {
             if (anyDeployment.status !== "DEPLOYED") {
               set.status = 503;

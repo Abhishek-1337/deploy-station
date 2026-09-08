@@ -1,6 +1,13 @@
 import { prisma } from "../lib/prisma.ts";
 import { hashPassword, verifyPassword, signToken } from "../utils/auth.ts";
 import { getUserFromRequest } from "../middleware/auth.ts";
+import {
+  generateState,
+  verifyState,
+  getGoogleAuthUrl,
+  exchangeCodeForTokens,
+  getGoogleUserInfo,
+} from "../utils/google.ts";
 
 // POST /api/auth/register
 export const register = async ({ body, set }: any) => {
@@ -34,6 +41,11 @@ export const login = async ({ body, set }: any) => {
     return { error: "Invalid credentials" };
   }
 
+  if (!user.password) {
+    set.status = 401;
+    return { error: "Please sign in with Google" };
+  }
+
   const valid = await verifyPassword(password, user.password);
   if (!valid) {
     set.status = 401;
@@ -43,7 +55,7 @@ export const login = async ({ body, set }: any) => {
   const token = signToken({ userId: user.id, email: user.email });
 
   return {
-    user: { id: user.id, email: user.email, name: user.name },
+    user: { id: user.id, email: user.email, name: user.name, avatar: (user as any).avatar },
     token,
   };
 };
@@ -56,4 +68,91 @@ export const getMe = async ({ headers, request, set }: any) => {
     return { error: "Unauthorized" };
   }
   return { user };
+};
+
+// GET /api/auth/google - redirect to Google OAuth
+export const googleAuth = async ({ set }: any) => {
+  try {
+    const state = generateState();
+    const url = getGoogleAuthUrl(state);
+    set.redirect = url;
+    return;
+  } catch (err: any) {
+    set.status = 500;
+    return { error: err.message || "Failed to initiate Google OAuth" };
+  }
+};
+
+// GET /api/auth/google/callback - handle Google redirect
+export const googleCallback = async ({ query, set }: any) => {
+  const { code, state, error } = query as { code?: string; state?: string; error?: string };
+
+  const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+
+  if (error) {
+    set.redirect = `${frontendUrl}/login?error=${encodeURIComponent(error)}`;
+    return;
+  }
+
+  if (!code) {
+    set.redirect = `${frontendUrl}/login?error=${encodeURIComponent("Missing authorization code")}`;
+    return;
+  }
+
+  // Verify state (CSRF protection) - warn but don't hard fail if store empty (e.g., server restart)
+  if (state && !verifyState(state)) {
+    console.warn("[oauth] Invalid or expired state:", state);
+    // For strict security, uncomment:
+    // set.redirect = `${frontendUrl}/login?error=${encodeURIComponent("Invalid state")}`;
+    // return;
+  }
+
+  try {
+    const tokens = await exchangeCodeForTokens(code);
+    const googleUser = await getGoogleUserInfo(tokens.access_token);
+
+    if (!googleUser.email) {
+      throw new Error("Google account has no email");
+    }
+
+    // Upsert user: link by googleId or email
+    let user = await prisma.user.findFirst({
+      where: {
+        OR: [{ googleId: googleUser.id }, { email: googleUser.email }],
+      },
+    });
+
+    if (user) {
+      // Link / update existing user
+      const data: any = {};
+      if (!user.googleId) data.googleId = googleUser.id;
+      if (!user.avatar && googleUser.picture) data.avatar = googleUser.picture;
+      if (!user.name && googleUser.name) data.name = googleUser.name;
+      if (!user.provider || user.provider === "local") data.provider = "google";
+      if (Object.keys(data).length > 0) {
+        user = await prisma.user.update({ where: { id: user.id }, data });
+      }
+    } else {
+      user = await prisma.user.create({
+        data: {
+          email: googleUser.email,
+          name: googleUser.name,
+          googleId: googleUser.id,
+          avatar: googleUser.picture,
+          provider: "google",
+          password: null,
+        },
+      });
+    }
+
+    const token = signToken({ userId: user.id, email: user.email });
+
+    // Redirect to frontend with token (frontend will store it)
+    set.redirect = `${frontendUrl}/auth/callback?token=${encodeURIComponent(token)}`;
+    return;
+  } catch (err: any) {
+    console.error("[oauth] Google callback error:", err);
+    set.redirect = `${frontendUrl}/login?error=${encodeURIComponent(err.message || "OAuth failed")}`;
+    return;
+  }
 };

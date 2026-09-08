@@ -17,7 +17,7 @@ export async function getUserFromRequest(headers: any, request?: Request) {
     const payload = verifyToken(token);
     const user = await prisma.user.findUnique({
       where: { id: payload.userId },
-      select: { id: true, email: true, name: true },
+      select: { id: true, email: true, name: true, avatar: true, googleId: true },
     });
     return user;
   } catch {
