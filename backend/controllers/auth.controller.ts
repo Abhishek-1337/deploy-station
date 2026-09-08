@@ -76,14 +76,15 @@ export const googleAuth = async ({ set }: any) => {
   try {
     const state = generateState();
     const url = getGoogleAuthUrl(state);
+    set.status = 302;
     set.redirect = url;
     return;
   } catch (err: any) {
-    // Don't show raw backend JSON — send user back to frontend with error
+    // Don't show raw backend JSON at http://localhost:3000/api/auth/google
+    // — redirect back to frontend with error
     const msg = err.message || "Google OAuth not configured";
     console.error("[oauth] googleAuth error:", msg);
-    // If headers already sent as redirect, Elysia will handle set.redirect
-    // Otherwise redirect to login with error
+    set.status = 302;
     set.redirect = `${frontendUrl}/login?error=${encodeURIComponent(msg)}`;
     return;
   }
@@ -96,11 +97,13 @@ export const googleCallback = async ({ query, set }: any) => {
   const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
 
   if (error) {
+    set.status = 302;
     set.redirect = `${frontendUrl}/login?error=${encodeURIComponent(error)}`;
     return;
   }
 
   if (!code) {
+    set.status = 302;
     set.redirect = `${frontendUrl}/login?error=${encodeURIComponent("Missing authorization code")}`;
     return;
   }
@@ -154,10 +157,12 @@ export const googleCallback = async ({ query, set }: any) => {
     const token = signToken({ userId: user.id, email: user.email });
 
     // Redirect to frontend with token (frontend will store it)
+    set.status = 302;
     set.redirect = `${frontendUrl}/auth/callback?token=${encodeURIComponent(token)}`;
     return;
   } catch (err: any) {
     console.error("[oauth] Google callback error:", err);
+    set.status = 302;
     set.redirect = `${frontendUrl}/login?error=${encodeURIComponent(err.message || "OAuth failed")}`;
     return;
   }

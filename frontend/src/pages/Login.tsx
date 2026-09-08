@@ -91,8 +91,9 @@ export default function Login() {
             <span className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
           </div>
 
-          <a
-            href={getGoogleAuthUrl()}
+          <button
+            type="button"
+            onClick={() => (window.location.href = getGoogleAuthUrl())}
             className="flex w-full items-center justify-center gap-2 rounded-lg border border-zinc-300 bg-white py-2.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
           >
             <svg width="18" height="18" viewBox="0 0 24 24">
@@ -102,7 +103,7 @@ export default function Login() {
               <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
             </svg>
             Continue with Google
-          </a>
+          </button>
 
           <p className="text-center text-sm text-zinc-500">
             No account? <Link to="/register" className="text-zinc-900 underline decoration-zinc-300 underline-offset-4 hover:decoration-zinc-900 dark:text-white dark:decoration-zinc-600 dark:hover:decoration-white">Sign up</Link>
