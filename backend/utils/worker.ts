@@ -41,10 +41,22 @@ const buildRepo = async (github_url: string, deploymentId: string) => {
 const redisHost = process.env.REDIS_HOST ?? (process.env.NODE_ENV === "production" ? "redis" : "localhost");
 const redisPort = parseInt(process.env.REDIS_PORT ?? "6379", 10);
 
-new Worker('deploy-queue', async (job) => {
+const worker = new Worker('deploy-queue', async (job) => {
   const { github_url, userId, deploymentId } = job.data;
   await buildRepo(github_url, deploymentId);
 }, {
   connection: { host: redisHost, port: redisPort, maxRetriesPerRequest: null },
   concurrency: 2,
+});
+
+worker.on('failed', async (job, err) => {
+  console.error(`Job ${job?.id} failed:`, err.message);
+  
+  // Update the database so the user knows it failed
+  if (job?.data?.deploymentId) {
+    await prisma.deployment.update({
+      where: { id: job.data.deploymentId },
+      data: { status: 'FAILED' }
+    });
+  }
 });
