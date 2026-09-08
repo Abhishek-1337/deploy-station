@@ -52,7 +52,6 @@ const worker = new Worker('deploy-queue', async (job) => {
 worker.on('failed', async (job, err) => {
   console.error(`Job ${job?.id} failed:`, err.message);
   
-  // Update the database so the user knows it failed
   if (job?.data?.deploymentId) {
     await prisma.deployment.update({
       where: { id: job.data.deploymentId },
