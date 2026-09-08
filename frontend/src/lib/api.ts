@@ -1,6 +1,11 @@
 export const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 export function getGoogleAuthUrl() {
+  // Use relative URL in dev so Vite proxy hides the backend port
+  // (user was seeing http://localhost:3000/api/auth/google as raw page).
+  // In prod with a separate API domain, VITE_API_URL will be set to that domain.
+  const envUrl = import.meta.env.VITE_API_URL as string | undefined;
+  if (!envUrl || envUrl.includes("localhost:3000")) return "/api/auth/google";
   return `${API_URL}/api/auth/google`;
 }
 

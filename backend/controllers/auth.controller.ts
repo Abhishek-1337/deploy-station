@@ -72,14 +72,20 @@ export const getMe = async ({ headers, request, set }: any) => {
 
 // GET /api/auth/google - redirect to Google OAuth
 export const googleAuth = async ({ set }: any) => {
+  const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
   try {
     const state = generateState();
     const url = getGoogleAuthUrl(state);
     set.redirect = url;
     return;
   } catch (err: any) {
-    set.status = 500;
-    return { error: err.message || "Failed to initiate Google OAuth" };
+    // Don't show raw backend JSON — send user back to frontend with error
+    const msg = err.message || "Google OAuth not configured";
+    console.error("[oauth] googleAuth error:", msg);
+    // If headers already sent as redirect, Elysia will handle set.redirect
+    // Otherwise redirect to login with error
+    set.redirect = `${frontendUrl}/login?error=${encodeURIComponent(msg)}`;
+    return;
   }
 };
 

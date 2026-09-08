@@ -34,8 +34,8 @@ export function verifyState(state: string): boolean {
 }
 
 export function getGoogleAuthUrl(state: string): string {
-  const clientId = process.env.GOOGLE_CLIENT_ID;
-  if (!clientId) throw new Error("GOOGLE_CLIENT_ID not set");
+  const clientId = process.env.GOOGLE_CLIENT_ID?.trim();
+  if (!clientId) throw new Error("GOOGLE_CLIENT_ID not set — configure in backend/.env");
   const redirectUri =
     process.env.GOOGLE_REDIRECT_URI || "http://localhost:3000/api/auth/google/callback";
 
@@ -58,13 +58,13 @@ export async function exchangeCodeForTokens(code: string): Promise<{
   refresh_token?: string;
   expires_in?: number;
 }> {
-  const clientId = process.env.GOOGLE_CLIENT_ID;
-  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+  const clientId = process.env.GOOGLE_CLIENT_ID?.trim();
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET?.trim();
   const redirectUri =
     process.env.GOOGLE_REDIRECT_URI || "http://localhost:3000/api/auth/google/callback";
 
   if (!clientId || !clientSecret) {
-    throw new Error("GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET not set");
+    throw new Error("GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET not set — configure in backend/.env");
   }
 
   const res = await fetch(GOOGLE_TOKEN_URL, {
