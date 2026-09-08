@@ -9,5 +9,12 @@ export const deployQueue = new Queue('deploy-queue', {
     port: redisPort,
     maxRetriesPerRequest: null,
   },
+  defaultJobOptions: {
+    attempts: 5,
+    backoff: {
+      type: "exponential",
+      delay: 5000
+    }
+  }
 });
 

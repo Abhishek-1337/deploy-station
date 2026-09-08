@@ -50,7 +50,6 @@ const worker = new Worker('deploy-queue', async (job) => {
 });
 
 worker.on('failed', async (job, err) => {
-  console.error(`Job ${job?.id} failed:`, err.message);
   
   if (job?.data?.deploymentId) {
     await prisma.deployment.update({
