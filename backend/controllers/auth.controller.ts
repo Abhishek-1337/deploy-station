@@ -71,22 +71,17 @@ export const getMe = async ({ headers, request, set }: any) => {
 };
 
 // GET /api/auth/google - redirect to Google OAuth
-export const googleAuth = async ({ set }: any) => {
+export const googleAuth = async () => {
   const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
   try {
     const state = generateState();
     const url = getGoogleAuthUrl(state);
-    set.status = 302;
-    set.redirect = url;
-    return;
+    console.log("[oauth] redirecting to Google:", url.slice(0, 80) + "...");
+    return Response.redirect(url, 302);
   } catch (err: any) {
-    // Don't show raw backend JSON at http://localhost:3000/api/auth/google
-    // — redirect back to frontend with error
     const msg = err.message || "Google OAuth not configured";
     console.error("[oauth] googleAuth error:", msg);
-    set.status = 302;
-    set.redirect = `${frontendUrl}/login?error=${encodeURIComponent(msg)}`;
-    return;
+    return Response.redirect(`${frontendUrl}/login?error=${encodeURIComponent(msg)}`, 302);
   }
 };
 
@@ -97,15 +92,11 @@ export const googleCallback = async ({ query, set }: any) => {
   const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
 
   if (error) {
-    set.status = 302;
-    set.redirect = `${frontendUrl}/login?error=${encodeURIComponent(error)}`;
-    return;
+    return Response.redirect(`${frontendUrl}/login?error=${encodeURIComponent(error)}`, 302);
   }
 
   if (!code) {
-    set.status = 302;
-    set.redirect = `${frontendUrl}/login?error=${encodeURIComponent("Missing authorization code")}`;
-    return;
+    return Response.redirect(`${frontendUrl}/login?error=${encodeURIComponent("Missing authorization code")}`, 302);
   }
 
   // Verify state (CSRF protection) - warn but don't hard fail if store empty (e.g., server restart)
@@ -157,13 +148,9 @@ export const googleCallback = async ({ query, set }: any) => {
     const token = signToken({ userId: user.id, email: user.email });
 
     // Redirect to frontend with token (frontend will store it)
-    set.status = 302;
-    set.redirect = `${frontendUrl}/auth/callback?token=${encodeURIComponent(token)}`;
-    return;
+    return Response.redirect(`${frontendUrl}/auth/callback?token=${encodeURIComponent(token)}`, 302);
   } catch (err: any) {
     console.error("[oauth] Google callback error:", err);
-    set.status = 302;
-    set.redirect = `${frontendUrl}/login?error=${encodeURIComponent(err.message || "OAuth failed")}`;
-    return;
+    return Response.redirect(`${frontendUrl}/login?error=${encodeURIComponent(err.message || "OAuth failed")}`, 302);
   }
 };
