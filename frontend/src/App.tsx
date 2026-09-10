@@ -4,6 +4,7 @@ import Navbar from "./components/Navbar";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Upload from "./pages/Upload";
+import Projects from "./pages/Projects";
 import OAuthCallback from "./pages/OAuthCallback";
 import { Spotlight } from "./components/ui/spotlight";
 import { GridBackground } from "./components/ui/grid-background";
@@ -119,6 +120,9 @@ export default function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/auth/callback" element={<OAuthCallback />} />
           <Route path="/deploy" element={<Upload />} />
+          <Route path="/projects" element={<Projects />} />
+          <Route path="/dashboard" element={<Navigate to="/projects" replace />} />
+          <Route path="/deployments" element={<Navigate to="/projects" replace />} />
           <Route path="/upload" element={<Navigate to="/deploy" replace />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
