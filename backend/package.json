@@ -5,7 +5,9 @@
   "private": true,
   "scripts": {
     "dev": "bun --hot index.ts",
+    "dev:worker": "bun --hot utils/worker.ts",
     "start": "bun index.ts",
+    "start:worker": "bun utils/worker.ts",
     "build": "bun build index.ts --outdir dist"
   },
   "devDependencies": {
