@@ -244,3 +244,53 @@ export const listDeployments = async ({ set, user, headers, request, query }: an
   });
   return { deployments };
 };
+
+export const listProjects = async ({ set, user, headers, request }: any) => {
+  if (!user && headers) {
+    const { getUserFromRequest } = await import("../middleware/auth.ts");
+    user = await getUserFromRequest(headers, request);
+  }
+  if (!user) {
+    set.status = 401;
+    return { error: "Unauthorized" };
+  }
+  const projects = await prisma.project.findMany({
+    where: { userId: user.id },
+    include: {
+      deployments: {
+        orderBy: { id: "desc" },
+        take: 1,
+      },
+    },
+    orderBy: { name: "asc" },
+  });
+
+  // enrich with live URL and deployment counts
+  const enriched = await Promise.all(
+    projects.map(async (p) => {
+      const latest = p.deployments[0] ?? null;
+      const counts = await prisma.deployment.groupBy({
+        by: ["status"],
+        where: { projectId: p.id },
+        _count: { status: true },
+      });
+      const statusCounts = Object.fromEntries(
+        counts.map((c) => [c.status, c._count.status])
+      );
+      return {
+        id: p.id,
+        name: p.name,
+        repo: p.repo,
+        domain: p.domain,
+        url: `http://${p.name}.localhost:3000`,
+        latestDeployment: latest
+          ? { id: latest.id, status: latest.status, projectId: latest.projectId }
+          : null,
+        totalDeployments: counts.reduce((a, b) => a + b._count.status, 0),
+        statusCounts,
+      };
+    })
+  );
+
+  return { projects: enriched };
+};

@@ -19,4 +19,5 @@ export const deployRoutes = new Elysia({ prefix: "/api/project" })
     }),
   })
   .get("/deployment/:deploymentId", projectControllers.getDeploymentStatus)
-  .get("/deployments", projectControllers.listDeployments);
+  .get("/deployments", projectControllers.listDeployments)
+  .get("/projects", projectControllers.listProjects);
