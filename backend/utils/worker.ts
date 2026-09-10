@@ -49,8 +49,14 @@ const worker = new Worker('deploy-queue', async (job) => {
   concurrency: 2,
 });
 
+worker.on("ready", () => console.log(`[worker] ready — redis ${redisHost}:${redisPort}`));
+worker.on("active", (job) => console.log(`[worker] active ${job.id} ${job.data?.deploymentId}`));
+worker.on("completed", (job) => console.log(`[worker] completed ${job.id}`));
+worker.on("error", (err) => console.error("[worker] redis error:", err.message));
+worker.on("stalled", (jobId) => console.warn(`[worker] stalled ${jobId}`));
+
 worker.on('failed', async (job, err) => {
-  
+  console.error(`[worker] failed ${job?.id}:`, err.message);
   if (job?.data?.deploymentId) {
     await prisma.deployment.update({
       where: { id: job.data.deploymentId },
