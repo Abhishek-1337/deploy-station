@@ -58,7 +58,7 @@ export const api = {
   deploy: (body: { github_url: string } | { repoUrl: string }) => {
     const payload =
       "github_url" in body ? body : { github_url: (body as any).repoUrl };
-    return request<{ deploymentId: string; status: string; projectId: string }>(
+    return request<{ deploymentId: string; status: string; projectId: string; projectName?: string; url?: string }>(
       "/api/project/deploy",
       {
         method: "POST",
