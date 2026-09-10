@@ -5,6 +5,7 @@ import { deployRoutes } from "./routes/project.route.ts"
 import { getUserFromRequest } from "./middleware/auth.ts"
 import { prisma } from "./lib/prisma.ts"
 import { getProjectFile } from "./utils/r2.ts"
+import "./utils/worker.ts"
 
 new Elysia()
   .use(cors({
