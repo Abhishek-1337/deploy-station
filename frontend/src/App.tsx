@@ -10,6 +10,7 @@ import { Spotlight } from "./components/ui/spotlight";
 import { GridBackground } from "./components/ui/grid-background";
 import { TextGenerateEffect } from "./components/ui/text-generate";
 import { HoverCard } from "./components/ui/card-hover";
+import { getToken } from "./lib/api";
 
 function Home() {
   return (
@@ -109,13 +110,18 @@ function Home() {
   );
 }
 
+function Root() {
+  if (getToken()) return <Navigate to="/deploy" replace />;
+  return <Home />;
+}
+
 export default function App() {
   return (
     <BrowserRouter>
       <div className="min-h-screen bg-white text-zinc-900 dark:bg-black dark:text-white">
         <Navbar />
         <Routes>
-          <Route path="/" element={<Home />} />
+          <Route path="/" element={<Root />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/auth/callback" element={<OAuthCallback />} />
