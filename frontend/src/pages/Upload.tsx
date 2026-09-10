@@ -7,11 +7,20 @@ function isValidGitUrl(v: string) {
   return /^https:\/\/github\.com\/[\w.-]+\/[\w.-]+\/?$/.test(v.trim()) || /^https:\/\/.+\.git\/?$/.test(v.trim()) || v.startsWith("https://");
 }
 
+type DeployResult = {
+  deploymentId: string;
+  status: string;
+  projectId?: string;
+  projectName?: string;
+  url?: string;
+};
+
 export default function Upload() {
   const navigate = useNavigate();
   const [repoUrl, setRepoUrl] = useState("");
   const [error, setError] = useState("");
-  const [result, setResult] = useState<{ deploymentId: string; status: string } | null>(null);
+  const [result, setResult] = useState<DeployResult | null>(null);
+  const [projectName, setProjectName] = useState<string | null>(null);
   const [liveStatus, setLiveStatus] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const pollRef = useRef<number | null>(null);
@@ -30,6 +39,10 @@ export default function Upload() {
         const s = await api.getDeploymentStatus(deploymentId);
         setLiveStatus(s.status);
         setResult((prev) => (prev ? { ...prev, status: s.status } : prev));
+        if (s.project?.name) {
+          setProjectName(s.project.name);
+          setResult((prev) => (prev ? { ...prev, projectName: s.project.name, url: `http://${s.project.name}.localhost:3000` } : prev));
+        }
         if (s.status === "DEPLOYED" || s.status === "FAILED") {
           if (pollRef.current) window.clearInterval(pollRef.current);
           pollRef.current = null;
@@ -44,6 +57,7 @@ export default function Upload() {
     e.preventDefault();
     setError("");
     setResult(null);
+    setProjectName(null);
     setLiveStatus(null);
     if (pollRef.current) window.clearInterval(pollRef.current);
 
@@ -60,12 +74,25 @@ export default function Upload() {
     try {
       const res = await api.deploy({ repoUrl: repoUrl.trim() });
       setResult(res);
+      if (res.projectName) setProjectName(res.projectName);
+      else if (res.url) {
+        try {
+          const host = new URL(res.url).hostname;
+          setProjectName(host.split(".")[0] ?? null);
+        } catch {}
+      }
       startPolling(res.deploymentId);
     } catch (err: any) {
-      // Senior UX: 409 means deduped — deployment already QUEUED/RUNNING, poll existing
       if (err?.status === 409 && err?.data?.deploymentId) {
-        const existing = err.data as { deploymentId: string; status: string; projectId: string; message?: string };
-        setResult({ deploymentId: existing.deploymentId, status: existing.status, projectId: existing.projectId } as any);
+        const existing = err.data as { deploymentId: string; status: string; projectId: string; projectName?: string; url?: string; message?: string };
+        setResult({ deploymentId: existing.deploymentId, status: existing.status, projectId: existing.projectId, projectName: existing.projectName, url: existing.url } as any);
+        if (existing.projectName) setProjectName(existing.projectName);
+        else if (existing.url) {
+          try {
+            const host = new URL(existing.url).hostname;
+            setProjectName(host.split(".")[0] ?? null);
+          } catch {}
+        }
         setLiveStatus(existing.status);
         startPolling(existing.deploymentId);
         setError("");
@@ -76,6 +103,9 @@ export default function Upload() {
       setLoading(false);
     }
   }
+
+  const displayHost = projectName ? `${projectName}.localhost:3000` : result ? `${result.deploymentId}.localhost:3000` : null;
+  const displayUrl = projectName ? `http://${projectName}.localhost:3000` : displayHost ? `http://${displayHost}` : null;
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-12">
@@ -143,11 +173,18 @@ export default function Upload() {
                 <p className="mt-2 text-xs text-red-600 dark:text-red-400">Build or upload failed. Check logs and retry.</p>
               ) : liveStatus === "DEPLOYED" ? (
                 <p className="mt-2 text-xs text-zinc-600 dark:text-zinc-400">
-                  Your site is live at <span className="font-mono text-zinc-900 dark:text-white">{result.deploymentId}.yourdomain.com</span>
+                  Your site is live at{" "}
+                  {displayUrl ? (
+                    <a href={displayUrl} target="_blank" rel="noopener noreferrer" className="font-mono text-zinc-900 underline decoration-zinc-300 underline-offset-2 hover:decoration-zinc-900 dark:text-white dark:decoration-zinc-600 dark:hover:decoration-white">
+                      {displayHost}
+                    </a>
+                  ) : (
+                    <span className="font-mono text-zinc-900 dark:text-white">{displayHost}</span>
+                  )}
                 </p>
               ) : (
                 <p className="mt-2 text-xs text-zinc-600 dark:text-zinc-400">
-                  Your site will be available at <span className="font-mono text-zinc-900 dark:text-white">{result.deploymentId}.yourdomain.com</span> once the build finishes.
+                  Your site will be available at <span className="font-mono text-zinc-900 dark:text-white">{displayHost}</span> once the build finishes.
                 </p>
               )}
             </motion.div>
