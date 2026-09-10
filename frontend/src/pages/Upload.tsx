@@ -104,8 +104,9 @@ export default function Upload() {
     }
   }
 
-  const displayHost = projectName ? `${projectName}.localhost:3000` : result ? `${result.deploymentId}.localhost:3000` : null;
-  const displayUrl = projectName ? `http://${projectName}.localhost:3000` : displayHost ? `http://${displayHost}` : null;
+  const displayHost = projectName ? `${projectName}.localhost:3000` : null;
+  const displayUrl = displayHost ? `http://${displayHost}` : null;
+  const isPolling = liveStatus === "QUEUED" || liveStatus === "RUNNING" || (!liveStatus && !!result);
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-12">
@@ -161,30 +162,70 @@ export default function Upload() {
                     : "rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-900/50 dark:bg-amber-500/10"
               }
             >
-              <p className={
-                liveStatus === "FAILED" ? "text-sm font-medium text-red-700 dark:text-red-300"
-                : liveStatus === "DEPLOYED" ? "text-sm font-medium text-emerald-700 dark:text-emerald-300"
-                : "text-sm font-medium text-amber-700 dark:text-amber-300"
-              }>
-                {liveStatus === "FAILED" ? "Deployment failed" : liveStatus === "DEPLOYED" ? "Deployment live" : liveStatus === "RUNNING" ? "Building..." : "Deployment queued"}
-              </p>
-              <p className="mt-1 font-mono text-xs opacity-80">ID: {result.deploymentId} — status: {liveStatus ?? result.status}</p>
+              <div className="flex items-center gap-2">
+                {isPolling ? (
+                  <motion.svg
+                    aria-hidden
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400"
+                    animate={{ rotate: 360 }}
+                    transition={{ repeat: Infinity, duration: 0.8, ease: "linear" }}
+                    style={{ display: "block" }}
+                  >
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" className="opacity-25" />
+                    <path d="M12 2 a10 10 0 0 1 10 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+                  </motion.svg>
+                ) : liveStatus === "DEPLOYED" ? (
+                  <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-emerald-500 text-[10px] leading-none text-white">✓</span>
+                ) : liveStatus === "FAILED" ? (
+                  <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] leading-none text-white">✕</span>
+                ) : null}
+                <p
+                  className={
+                    liveStatus === "FAILED"
+                      ? "text-sm font-medium text-red-700 dark:text-red-300"
+                      : liveStatus === "DEPLOYED"
+                        ? "text-sm font-medium text-emerald-700 dark:text-emerald-300"
+                        : "text-sm font-medium text-amber-700 dark:text-amber-300"
+                  }
+                >
+                  {liveStatus === "FAILED"
+                    ? "Deployment failed"
+                    : liveStatus === "DEPLOYED"
+                      ? "Deployed"
+                      : liveStatus === "RUNNING"
+                        ? "Building…"
+                        : "Queued"}
+                </p>
+              </div>
               {liveStatus === "FAILED" ? (
                 <p className="mt-2 text-xs text-red-600 dark:text-red-400">Build or upload failed. Check logs and retry.</p>
               ) : liveStatus === "DEPLOYED" ? (
                 <p className="mt-2 text-xs text-zinc-600 dark:text-zinc-400">
                   Your site is live at{" "}
                   {displayUrl ? (
-                    <a href={displayUrl} target="_blank" rel="noopener noreferrer" className="font-mono text-zinc-900 underline decoration-zinc-300 underline-offset-2 hover:decoration-zinc-900 dark:text-white dark:decoration-zinc-600 dark:hover:decoration-white">
+                    <a
+                      href={displayUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-mono text-zinc-900 underline decoration-zinc-300 underline-offset-2 hover:decoration-zinc-900 dark:text-white dark:decoration-zinc-600 dark:hover:decoration-white"
+                    >
                       {displayHost}
                     </a>
                   ) : (
-                    <span className="font-mono text-zinc-900 dark:text-white">{displayHost}</span>
+                    <span className="font-mono text-zinc-900 dark:text-white">your subdomain</span>
                   )}
                 </p>
               ) : (
                 <p className="mt-2 text-xs text-zinc-600 dark:text-zinc-400">
-                  Your site will be available at <span className="font-mono text-zinc-900 dark:text-white">{displayHost}</span> once the build finishes.
+                  {displayHost ? (
+                    <>
+                      Your site will be available at <span className="font-mono text-zinc-900 dark:text-white">{displayHost}</span>
+                    </>
+                  ) : (
+                    <>Preparing your deployment…</>
+                  )}
                 </p>
               )}
             </motion.div>
