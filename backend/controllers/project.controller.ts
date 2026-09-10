@@ -77,6 +77,8 @@ export const deployProject = async ({ body, set, user, headers, request }: any) 
         message: "Deployment already in progress for this project.",
         projectId: checkRepo.id,
         deploymentId: active.id,
+        projectName: checkRepo.name,
+        url: `http://${checkRepo.name}.localhost:3000`,
       };
     }
 
@@ -106,6 +108,8 @@ export const deployProject = async ({ body, set, user, headers, request }: any) 
         message: "Project is already in our database, deploying again....",
         projectId: checkRepo.id,
         deploymentId: deployment.id,
+        projectName: checkRepo.name,
+        url: `http://${checkRepo.name}.localhost:3000`,
       };
     } catch (e: any) {
       if (e?.code === "P2002") {
@@ -118,6 +122,8 @@ export const deployProject = async ({ body, set, user, headers, request }: any) 
           message: "Deployment already in progress (race).",
           projectId: checkRepo.id,
           deploymentId: raceActive?.id ?? checkRepo.id,
+          projectName: checkRepo.name,
+          url: `http://${checkRepo.name}.localhost:3000`,
         };
       }
       throw e;
@@ -160,6 +166,8 @@ export const deployProject = async ({ body, set, user, headers, request }: any) 
         message: "Deployment already in progress (race).",
         projectId: project.id,
         deploymentId: raceActive?.id ?? project.id,
+        projectName: project.name,
+        url: `http://${project.name}.localhost:3000`,
       };
     }
     throw e;
@@ -184,6 +192,8 @@ export const deployProject = async ({ body, set, user, headers, request }: any) 
     message: "Project is being deployed wait.",
     projectId: project.id,
     deploymentId: deployment.id,
+    projectName: project.name,
+    url: `http://${project.name}.localhost:3000`,
   };
 };
 
