@@ -18,3 +18,6 @@ export const deployQueue = new Queue('deploy-queue', {
   }
 });
 
+deployQueue.on("error", (err) => console.error("[queue] redis error:", err.message));
+deployQueue.waitUntilReady().then(() => console.log(`[queue] ready — redis ${redisHost}:${redisPort}`)).catch((e) => console.error("[queue] waitUntilReady failed:", e.message));
+
