@@ -30,6 +30,9 @@ export default function Navbar() {
           </button>
           {isAuthed ? (
             <>
+              <Link to="/projects" className="hidden sm:inline px-3 py-1.5 font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-white">
+                Projects
+              </Link>
               <Link to="/deploy" className="rounded-full bg-zinc-900 px-4 py-1.5 font-medium text-white hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-zinc-200">
                 Deploy
               </Link>
