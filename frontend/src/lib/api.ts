@@ -74,4 +74,17 @@ export const api = {
     request<{ deployments: Array<{ id: string; status: string; projectId: string; project: { name: string; repo: string } }> }>(
       "/api/project/deployments"
     ),
+  listProjects: () =>
+    request<{
+      projects: Array<{
+        id: string;
+        name: string;
+        repo: string;
+        domain: string | null;
+        url: string;
+        latestDeployment: { id: string; status: string; projectId: string } | null;
+        totalDeployments: number;
+        statusCounts: Record<string, number>;
+      }>;
+    }>("/api/project/projects"),
 };
