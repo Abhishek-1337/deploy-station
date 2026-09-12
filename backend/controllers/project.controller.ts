@@ -78,7 +78,7 @@ export const deployProject = async ({ body, set, user, headers, request }: any) 
         projectId: checkRepo.id,
         deploymentId: active.id,
         projectName: checkRepo.name,
-        url: `http://${checkRepo.name}.localhost:3000`,
+        url: `http://${checkRepo.name}.${process.env.ROOT_DOMAIN}`
       };
     }
 
@@ -109,7 +109,7 @@ export const deployProject = async ({ body, set, user, headers, request }: any) 
         projectId: checkRepo.id,
         deploymentId: deployment.id,
         projectName: checkRepo.name,
-        url: `http://${checkRepo.name}.localhost:3000`,
+        url: `http://${checkRepo.name}.${process.env.ROOT_DOMAIN}`
       };
     } catch (e: any) {
       if (e?.code === "P2002") {
@@ -123,7 +123,7 @@ export const deployProject = async ({ body, set, user, headers, request }: any) 
           projectId: checkRepo.id,
           deploymentId: raceActive?.id ?? checkRepo.id,
           projectName: checkRepo.name,
-          url: `http://${checkRepo.name}.localhost:3000`,
+          url: `http://${checkRepo.name}.${process.env.ROOT_DOMAIN}`
         };
       }
       throw e;
